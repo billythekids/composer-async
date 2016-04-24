@@ -1,0 +1,40 @@
+{
+  "name": "Contemi/ComposerAsync",
+  "description": "Allow async download",
+  "minimum-stability": "beta",
+  "version": "1.0.0",
+  "type": "composer-plugin",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Billy Nguyen",
+      "email": "billythekidsde@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": { "Contemi\\ComposerAsync\\": "src/Composer/Async" }
+  },
+  "extra": {
+    "class": "Contemi\\ComposerAsync\\Plugin"
+  },
+  "require": {
+    "composer-plugin-api": "^1.0",
+    "react/child-process": "dev-master"
+  },
+  "require-dev": {
+    "composer/composer": "1.0.*@dev",
+    "phpunit/phpunit": "4.1.*",
+    "composer/installers": "~1.0"
+  },
+  "scripts": {
+    "test": "phpunit"
+  },
+  "config": {
+    "prestissimo": {
+      "maxConnections": 24,
+      "minConnections": 12,
+      "pipeline": true,
+      "verbose": true
+    }
+  }
+}
