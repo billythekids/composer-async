@@ -55,8 +55,13 @@ class PrimaryQueue extends EventEmitter implements IQueue
         return $this->store;
     }
 
-    public function onJobStart()
+    public function onJobStart(Process $process, $cwd = null)
     {
+        if ($this->io && $this->io->isDebug()) {
+            $safeCommand = preg_replace('{(://[^:/\s]+:)[^@\s/]+}i', '$1****', $process->getCommand());
+            $this->io->writeError('Executing command ('.($cwd ?: 'CWD').'): '.$safeCommand);
+        }
+
         $this->executing++;
     }
 
@@ -75,6 +80,7 @@ class PrimaryQueue extends EventEmitter implements IQueue
         while($this->executing < $this->maxExecution && $remaining > 0)
         {
             $this->registerJob();
+            $remaining = $this->getStore()->count() - ($this->done + $this->executing);
         }
         
         $this->output();
@@ -85,6 +91,7 @@ class PrimaryQueue extends EventEmitter implements IQueue
      */
     public function execute()
     {
+        $this->output();
         if($this->getStore()->count())
         {
             $this->getStore()->rewind();
@@ -95,7 +102,7 @@ class PrimaryQueue extends EventEmitter implements IQueue
     }
 
     /**
-     * Register process to looper
+     * Register process to loop
      */
     private function registerJob()
     {
@@ -106,23 +113,25 @@ class PrimaryQueue extends EventEmitter implements IQueue
             $data   = $this->getStore()->getInfo();
             $callback = $data[0];
             $cmd = $data[1];
+            $cwd = $data[2];
 
             $process->on('exit', function() {
                 $this->emit(self::JOB_FINISH, func_get_args());
             });
 
-            $this->loop->addTimer(0.000001, function($timer) use ($process, $callback, $cmd) {
+            $this->loop->addTimer(0.000001, function($timer) use ($process, $callback, $cmd, $cwd) {
                 $process->start($timer->getLoop(), 0.000001);
+
                 $process->stdout->on('data', function($output) use ($callback) {
                     if($output) {
-                        //$this->io->writeError('    <info>Output: '.$output."</info>");
+                        $this->io->writeError('    <info>Output: '.$output."</info>");
                         call_user_func_array($callback, [null, $output]);
                     }
                 });
 
             });
+            $this->emit(self::JOB_START, array($process, $cwd));
 
-            $this->emit(self::JOB_START, array($process));
             $this->getStore()->next();
         }
     }

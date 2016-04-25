@@ -23,15 +23,25 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     /**
      * @var Composer
      */
-    private $compose;
+    private $composer;
+
+    /**
+     * @var IOInterface
+     */
+    private $io;
+
+    private $enable = true;
 
     public function activate(Composer $composer, IOInterface $io)
     {
-        echo "Async call".PHP_EOL;
+        if($this->enable)
+        {
+            echo "Async call".PHP_EOL;
 
-        $this->compose = $composer;
-        $composer->getDownloadManager()->setDownloader('git', AsyncGitDownloader::getInstance($composer, $io));
-        
+            $this->composer = $composer;
+            $this->io = $io;
+            $composer->getDownloadManager()->setDownloader('git', AsyncGitDownloader::inject($composer, $io));
+        }
     }
 
     public static function getSubscribedEvents()
@@ -54,22 +64,30 @@ class Plugin implements PluginInterface, EventSubscriberInterface
 
     public function onPostSolving(InstallerEvent $ev)
     {
-        $ops = $ev->getOperations();
-        if (count($ops))
+        if($this->enable)
         {
-            foreach ($ops as $op)
+            $ops = $ev->getOperations();
+            if (count($ops))
             {
-                $type = $op->getJobType();
+                foreach ($ops as $op)
+                {
+                    $type = $op->getJobType();
 
-                if ('install' === $type || 'update' === $type ) {
-                    $this->compose->getInstallationManager()->execute(
-                        $this->compose->getRepositoryManager()->getLocalRepository(), $op
-                    );
+                    if ('install' === $type || 'update' === $type ) {
+                        $this->composer->getInstallationManager()->execute(
+                            $this->composer->getRepositoryManager()->getLocalRepository(), $op
+                        );
+                    }
                 }
             }
-        }
 
-        Factory::getPrimaryQueue()->execute();
-        Factory::getGroupQueue()->execute();
+            Factory::getPrimaryQueue()->execute();
+            Factory::getGroupQueue()->execute();
+
+            $this->io->writeError('<info>Async finish.</info>');
+
+            //Restore to origin
+            $this->composer->getDownloadManager()->setDownloader('git', AsyncGitDownloader::restore($this->composer));
+        }
     }
 }

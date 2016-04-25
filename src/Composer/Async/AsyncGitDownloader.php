@@ -18,7 +18,7 @@ class AsyncGitDownloader
 {
     static private $instance;
 
-    static public function getInstance(Composer $composer, IOInterface $io)
+    public static function inject(Composer $composer, IOInterface $io)
     {
         Factory::setIo($io);
 
@@ -75,5 +75,10 @@ class AsyncGitDownloader
         }
 
         return self::$instance;
+    }
+
+    public static function restore(Composer $composer)
+    {
+        return new GitDownloader(Factory::getIo(), $composer->getConfig());
     }
 }

@@ -17,8 +17,8 @@ use Symfony\Component\Process\Process;
 
 class GroupQueue extends EventEmitter implements IQueue
 {
-    const JOB_START = "job_start";
-    const JOB_FINISH = "job_finish";
+    const JOB_START = "job_secondary_start";
+    const JOB_FINISH = "job_secondary_finish";
 
     private $maxExecution = 24;
     private $executing = 0;
@@ -86,10 +86,49 @@ class GroupQueue extends EventEmitter implements IQueue
             $cwd = $item[2];
             $timeout = $item[3];
 
-            $process = new Process($command, $cwd, null, null, $timeout);
+            if ($this->io && $this->io->isDebug()) {
+                $safeCommand = preg_replace('{(://[^:/\s]+:)[^@\s/]+}i', '$1****', $command);
+                $this->io->writeError('Executing command ('.($cwd ?: 'CWD').'): '.$safeCommand);
+            }
 
-            $callback = is_callable($output) ? $output : array($this, 'outputHandler');
-            $process->run($callback);
+            $process = new Process($command, $cwd, null, null, $timeout);
+            $process->run($output);
+
+            if($process->isSuccessful())
+            {
+                if ($this->io && $this->io->isDebug())
+                {
+                    $this->io->writeError('Command output: (' . ($cwd ?: 'CWD') . '): 
+                    <info>' . $process->getOutput() . '</info>');
+                }
+            }
+            else
+            {
+                if ($this->io && $this->io->isDebug())
+                {
+                    $this->io->writeError('<error>Command error: (' . ($cwd ?: 'CWD') . '): 
+                    ' . $process->getErrorOutput() . '</error>');
+                }
+
+                if(strpos($command, 'checkout') > 0 && strpos($command, 'reset') >= 0)
+                {
+                    if(preg_match("/^git checkout '(.*?)' --/", $command, $match))
+                    {
+                        if($branch = $match[1]) {
+                            if (preg_match('{^[a-f0-9]{40}$}', $branch))
+                            {
+                                //TODO implement get hash
+                            }
+                            else
+                            {
+                                $command = str_replace($branch, 'composer/'.$branch, $command);
+                                $process = new Process($command, $cwd, null, null, $timeout);
+                                $process->run($output);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -116,6 +155,8 @@ class GroupQueue extends EventEmitter implements IQueue
      */
     public function execute()
     {
+        $this->output();
+
         if($this->getStore()->count())
         {
             $this->run();

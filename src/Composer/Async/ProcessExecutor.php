@@ -9,12 +9,12 @@
 namespace Contemi\ComposerAsync;
 
 use Composer\Util\Platform;
-use React\ChildProcess\Process;
+use React\ChildProcess\Process as ChildProcess;
+use Symfony\Component\Process\Process;
 
 
 class ProcessExecutor extends \Composer\Util\ProcessExecutor
 {
-
     /**
      * runs a process on the commandline
      *
@@ -26,6 +26,7 @@ class ProcessExecutor extends \Composer\Util\ProcessExecutor
      */
     public function execute($command, &$output = null, $cwd = null)
     {
+
         if ($this->io && $this->io->isDebug()) {
             $safeCommand = preg_replace('{(://[^:/\s]+:)[^@\s/]+}i', '$1****', $command);
             $this->io->writeError('Executing command ('.($cwd ?: 'CWD').'): '.$safeCommand);
@@ -44,10 +45,15 @@ class ProcessExecutor extends \Composer\Util\ProcessExecutor
 
         $callback = is_callable($output) ? $output : array($this, 'outputHandler');
 
-        // Put all "git clone command" on Primary queue to allow fetching at once 
+        // Put all "git clone command" on Primary queue to allow fetching at once
+        if ($this->io && $this->io->isDebug()) {
+            $this->io->writeError('Register job into Queue '.$pipeType);
+        }
+
         if($pipeType === Factory::Primary) {
-            $process = new Process($command, $cwd);
-            Factory::getPrimaryQueue()->getStore()->attach($process, array($callback, $command));
+            
+            $process = new ChildProcess($command, $cwd);
+            Factory::getPrimaryQueue()->getStore()->attach($process, array($callback, $command, $cwd));
         }
         else {
             Factory::getGroupQueue()->getSubStore($cwd)->push(array(
@@ -56,6 +62,7 @@ class ProcessExecutor extends \Composer\Util\ProcessExecutor
                 $cwd,
                 static::getTimeout()
             ));
+
         }
         
         return 0;
