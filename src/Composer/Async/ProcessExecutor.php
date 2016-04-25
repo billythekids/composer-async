@@ -47,7 +47,7 @@ class ProcessExecutor extends \Composer\Util\ProcessExecutor
         $process = new Process($command, $cwd);
 
 //        $this->io->writeError('    <info>Register on pipe : '.$pipeType."</info>");
-        Factory::getPipe($pipeType)->attach($process, array($callback, $command));
+        Factory::getPipe($pipeType)->getStorage()->attach($process, array($callback, $command));
         
         return 0;
     }
