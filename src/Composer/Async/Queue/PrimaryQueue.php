@@ -6,15 +6,16 @@
  * Time: 18:11
  */
 
-namespace Contemi\ComposerAsync;
+namespace Contemi\ComposerAsync\Queue;
 
 
 use Composer\IO\IOInterface;
+use Contemi\ComposerAsync\Factory;
 use Evenement\EventEmitter;
 use React\ChildProcess\Process;
 use React\EventLoop\LoopInterface;
 
-class Pipeline extends EventEmitter
+class PrimaryQueue extends EventEmitter implements IQueue
 {
     const JOB_START = "job_start";
     const JOB_FINISH = "job_finish";
@@ -49,7 +50,7 @@ class Pipeline extends EventEmitter
         $this->io = Factory::getIo();
     }
 
-    public function getStorage()
+    public function getStore()
     {
         return $this->store;
     }
@@ -69,7 +70,7 @@ class Pipeline extends EventEmitter
 
     private function run()
     {
-        $remaining = $this->getStorage()->count() - ($this->done + $this->executing);
+        $remaining = $this->getStore()->count() - ($this->done + $this->executing);
 
         while($this->executing < $this->maxExecution && $remaining > 0)
         {
@@ -79,32 +80,30 @@ class Pipeline extends EventEmitter
         $this->output();
     }
 
-
     /**
      * Processing a queue
      */
     public function execute()
     {
-        if($this->getStorage()->count())
+        if($this->getStore()->count())
         {
-            $this->getStorage()->rewind();
+            $this->getStore()->rewind();
             
             $this->run();
             $this->loop->run();
         }
     }
 
-
     /**
      * Register process to looper
      */
     private function registerJob()
     {
-        if($this->getStorage()->valid())
+        if($this->getStore()->valid())
         {
             /** @var Process $process */
-            $process = $this->getStorage()->current(); // similar to current($s)
-            $data   = $this->getStorage()->getInfo();
+            $process = $this->getStore()->current(); // similar to current($s)
+            $data   = $this->getStore()->getInfo();
             $callback = $data[0];
             $cmd = $data[1];
 
@@ -124,16 +123,16 @@ class Pipeline extends EventEmitter
             });
 
             $this->emit(self::JOB_START, array($process));
-            $this->getStorage()->next();
+            $this->getStore()->next();
         }
     }
 
     private function output()
     {
         $this->io->writeError(
-            '    Total Queue: <info>'.$this->getStorage()->count(). '</info> 
-            Running: <info>'. $this->executing . '</info> 
-            Remainning: <info>'. ($this->getStorage()->count() - $this->done).'</info>');
+            '    Total Queue: <info>'.$this->getStore()->count(). '</info>'.
+            ' Running: <info>'. $this->executing . '</info>'.
+            ' Remaining: <info>'. ($this->getStore()->count() - $this->done).'</info>');
     }
         
 }

@@ -9,6 +9,10 @@
 namespace Contemi\ComposerAsync;
 
 
+use Composer\IO\IOInterface;
+use Contemi\ComposerAsync\Queue\GroupQueue;
+use Contemi\ComposerAsync\Queue\IQueue;
+use Contemi\ComposerAsync\Queue\PrimaryQueue;
 use React\EventLoop\LoopInterface;
 
 class Factory
@@ -18,51 +22,72 @@ class Factory
     const Secondary = "SecondaryPipe";
     
     /**
-     * @var Pipeline[]
+     * @var IQueue[]
      */
-    static private $pipe = array();
+    private static $pipe = array();
 
     /**
      * @var LoopInterface
      */
-    static private $loop;
+    private static $loop;
 
-    static private $io;
+    /**
+     * @var IOInterface
+     */
+    private static $io;
 
     /**
      * @param string $type
-     * @return Pipeline
+     * @return IQueue
      */
-    public static function getPipe($type = Factory::Primary)
+    private static function getPipe($type = Factory::Primary)
     {
         if(!isset(self::$pipe[$type]))
         {
-            self::$pipe[$type] = new Pipeline();
+            self::$pipe[$type] = ($type == Factory::Primary) ? new PrimaryQueue() : new GroupQueue();
         }
         
         return self::$pipe[$type];
     }
 
     /**
-     * @return \React\EventLoop\ExtEventLoop|\React\EventLoop\LibEventLoop|\React\EventLoop\LibEvLoop|LoopInterface|\React\EventLoop\StreamSelectLoop
+     * @return PrimaryQueue
      */
-    static public function getLoop()
+    public static function getPrimaryQueue()
+    {
+        return self::getPipe(self::Primary);
+    }
+
+    /**
+     * @return GroupQueue
+     */
+    public static function getGroupQueue()
+    {
+        return self::getPipe(self::Secondary);
+    }
+
+    /**
+     * @return LoopInterface
+     */
+    public static function getLoop()
     {
         if(!self::$loop)
         {
-
-            self::$loop = \React\EventLoop\Factory::create();            
+            self::$loop = \React\EventLoop\Factory::create();
         }
         
         return self::$loop;
     }
     
-    static public function setIo($io)
+    public static function setIo(IOInterface $io)
     {
         return self::$io = $io;
     }
 
-    static public function getIo()
+    /**
+     * @return IOInterface
+     */
+    public static function getIo()
     {
         return self::$io;
     }

@@ -69,7 +69,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface
             }
         }
 
-        Factory::getPipe(Factory::Primary)->execute();
-        Factory::getPipe(Factory::Secondary)->execute();
+        Factory::getPrimaryQueue()->execute();
+        Factory::getGroupQueue()->execute();
     }
 }

@@ -44,10 +44,19 @@ class ProcessExecutor extends \Composer\Util\ProcessExecutor
 
         $callback = is_callable($output) ? $output : array($this, 'outputHandler');
 
-        $process = new Process($command, $cwd);
-
-//        $this->io->writeError('    <info>Register on pipe : '.$pipeType."</info>");
-        Factory::getPipe($pipeType)->getStorage()->attach($process, array($callback, $command));
+        // Put all "git clone command" on Primary queue to allow fetching at once 
+        if($pipeType === Factory::Primary) {
+            $process = new Process($command, $cwd);
+            Factory::getPrimaryQueue()->getStore()->attach($process, array($callback, $command));
+        }
+        else {
+            Factory::getGroupQueue()->getSubStore($cwd)->push(array(
+                $command,
+                $callback,
+                $cwd,
+                static::getTimeout()
+            ));
+        }
         
         return 0;
     }
