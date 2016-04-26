@@ -115,6 +115,7 @@ class GroupQueue extends EventEmitter implements IQueue
                     if(preg_match("/^git checkout '(.*?)' --/", $command, $match))
                     {
                         if($branch = $match[1]) {
+
                             if (preg_match('{^[a-f0-9]{40}$}', $branch))
                             {
                                 //TODO implement get hash
@@ -125,6 +126,9 @@ class GroupQueue extends EventEmitter implements IQueue
                                 $process = new Process($command, $cwd, null, null, $timeout);
                                 $process->run($output);
                             }
+
+                            $this->io->writeError('<info>Running fallback: (' . ($cwd ?: 'CWD') . '): 
+                            ' . $command . '</info>');
                         }
                     }
                 }

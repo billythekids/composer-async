@@ -10,9 +10,11 @@ namespace Contemi\ComposerAsync;
 
 
 use Composer\Composer;
+use Composer\DependencyResolver\Operation\OperationInterface;
 use Composer\EventDispatcher\EventSubscriberInterface;
 use Composer\Installer\InstallerEvents;
 use Composer\IO\IOInterface;
+use Composer\Package\PackageInterface;
 use Composer\Plugin\PluginInterface;
 use Contemi\ComposerAsync\Event\InstallerEvent;
 
@@ -34,7 +36,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     {
         if($this->enable)
         {
-            $io->writeError('<info>Async initial.</info>');
+            $io->writeError('<info>Async initialize</info>');
 
             $this->composer = $composer;
             $this->io = $io;
@@ -65,12 +67,20 @@ class Plugin implements PluginInterface, EventSubscriberInterface
                 foreach ($ops as $key => $op)
                 {
                     $type = $op->getJobType();
+
                     if ('install' === $type || 'update' === $type ) {
                         $clone = clone $op;
-                        $this->composer->getInstallationManager()->execute(
-                            $this->composer->getRepositoryManager()->getLocalRepository(), $clone
-                        );
-                        unset($ops[$key]);
+
+                        /** @var PackageInterface $package */
+                        $package = ('install' === $type) ? $clone->getPackage() : $clone->getTargetPackage();
+
+                        if(strtolower($package->getSourceType()) == 'git')
+                        {
+                            $this->composer->getInstallationManager()->execute(
+                                $this->composer->getRepositoryManager()->getLocalRepository(), $clone
+                            );
+                            unset($ops[$key]);
+                        }
                     }
                 }
             }

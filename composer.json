@@ -1,8 +1,7 @@
 {
   "name": "Contemi/ComposerAsync",
   "description": "Allow async download",
-  "minimum-stability": "beta",
-  "version": "1.0.0",
+  "minimum-stability": "dev",
   "type": "composer-plugin",
   "license": "MIT",
   "authors": [
@@ -22,19 +21,6 @@
     "react/child-process": "dev-master"
   },
   "require-dev": {
-    "composer/composer": "1.0.*@dev",
-    "phpunit/phpunit": "4.1.*",
-    "composer/installers": "~1.0"
-  },
-  "scripts": {
-    "test": "phpunit"
-  },
-  "config": {
-    "prestissimo": {
-      "maxConnections": 24,
-      "minConnections": 12,
-      "pipeline": true,
-      "verbose": true
-    }
+    "composer/composer": "1.0.*@dev"
   }
 }
