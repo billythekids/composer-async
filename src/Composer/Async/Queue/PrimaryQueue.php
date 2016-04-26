@@ -141,7 +141,7 @@ class PrimaryQueue extends EventEmitter implements IQueue
         $this->io->writeError(
             '    Total Queue: <info>'.$this->getStore()->count(). '</info>'.
             ' Running: <info>'. $this->executing . '</info>'.
-            ' Remaining: <info>'. ($this->getStore()->count() - $this->done).'</info>');
+            ' Remaining: <info>'. ($this->getStore()->count() - ($this->executing + $this->done)).'</info>');
     }
         
 }

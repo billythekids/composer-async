@@ -45,9 +45,9 @@ class ProcessExecutor extends \Composer\Util\ProcessExecutor
 
         $callback = is_callable($output) ? $output : array($this, 'outputHandler');
 
-        // Put all "git clone command" on Primary queue to allow fetching at once
         if ($this->io && $this->io->isDebug()) {
-            $this->io->writeError('Register job into Queue '.$pipeType);
+            // Put all "git clone command" on Primary queue to allow fetching at once
+            $this->io->writeError('     Register job into Queue ' . $pipeType);
         }
 
         if($pipeType === Factory::Primary) {

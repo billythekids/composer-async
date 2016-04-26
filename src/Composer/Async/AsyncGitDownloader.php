@@ -12,6 +12,8 @@ use Composer\Composer;
 use Composer\Config;
 use Composer\Downloader\GitDownloader;
 use Composer\IO\IOInterface;
+use Composer\EventDispatcher\EventDispatcher as ComposerEventDispatcher;
+use Contemi\ComposerAsync\Event\EventDispatcher;
 
 
 class AsyncGitDownloader
@@ -72,6 +74,12 @@ class AsyncGitDownloader
             }
 
             self::$instance = $instance;
+
+            //Event
+            $errorLevel = error_reporting();
+            error_reporting(0); //Hacking to prevent error compatible with parent class
+            $composer->setEventDispatcher(new EventDispatcher($composer, $io));
+            error_reporting($errorLevel);
         }
 
         return self::$instance;
@@ -79,6 +87,10 @@ class AsyncGitDownloader
 
     public static function restore(Composer $composer)
     {
+        //Restore default event
+        $composer->setEventDispatcher(new ComposerEventDispatcher($composer, Factory::getIo()));
+
+        //Restore git
         return new GitDownloader(Factory::getIo(), $composer->getConfig());
     }
 }

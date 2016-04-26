@@ -130,14 +130,14 @@ class GroupQueue extends EventEmitter implements IQueue
                 }
             }
         }
+
+        $this->emit(self::JOB_FINISH);
     }
 
     public function onJobFinish()
     {
         $this->executing--;
         $this->done++;
-
-        $this->run();
     }
 
     private function run()
@@ -163,7 +163,6 @@ class GroupQueue extends EventEmitter implements IQueue
             $this->loop->run();
         }
     }
-
 
     /**
      * Register process to looper

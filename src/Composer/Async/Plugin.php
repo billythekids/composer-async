@@ -11,12 +11,10 @@ namespace Contemi\ComposerAsync;
 
 use Composer\Composer;
 use Composer\EventDispatcher\EventSubscriberInterface;
-use Composer\Installer\InstallerEvent;
 use Composer\Installer\InstallerEvents;
 use Composer\IO\IOInterface;
-use Composer\Plugin\PluginEvents;
 use Composer\Plugin\PluginInterface;
-use Composer\Plugin\PreFileDownloadEvent;
+use Contemi\ComposerAsync\Event\InstallerEvent;
 
 class Plugin implements PluginInterface, EventSubscriberInterface
 {
@@ -36,10 +34,11 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     {
         if($this->enable)
         {
-            echo "Async call".PHP_EOL;
+            $io->writeError('<info>Async initial.</info>');
 
             $this->composer = $composer;
             $this->io = $io;
+
             $composer->getDownloadManager()->setDownloader('git', AsyncGitDownloader::inject($composer, $io));
         }
     }
@@ -49,19 +48,13 @@ class Plugin implements PluginInterface, EventSubscriberInterface
         return array(
             InstallerEvents::POST_DEPENDENCIES_SOLVING => array(
                 array('onPostSolving', 0),
-            ),
-            PluginEvents::PRE_FILE_DOWNLOAD => array(
-                array('onPreFileDownload', 0),
-            ),
+            )
         );
     }
 
-    public function onPreFileDownload(PreFileDownloadEvent $ev)
-    {
-        echo "Process url: ";
-        echo $ev->getProcessedUrl().PHP_EOL;
-    }
-
+    /**
+     * @param InstallerEvent $ev
+     */
     public function onPostSolving(InstallerEvent $ev)
     {
         if($this->enable)
@@ -69,25 +62,28 @@ class Plugin implements PluginInterface, EventSubscriberInterface
             $ops = $ev->getOperations();
             if (count($ops))
             {
-                foreach ($ops as $op)
+                foreach ($ops as $key => $op)
                 {
                     $type = $op->getJobType();
-
                     if ('install' === $type || 'update' === $type ) {
+                        $clone = clone $op;
                         $this->composer->getInstallationManager()->execute(
-                            $this->composer->getRepositoryManager()->getLocalRepository(), $op
+                            $this->composer->getRepositoryManager()->getLocalRepository(), $clone
                         );
+                        unset($ops[$key]);
                     }
                 }
             }
 
+            $start = microtime(true);
+
+            $ev->operationsRef = $ops;
             Factory::getPrimaryQueue()->execute();
             Factory::getGroupQueue()->execute();
 
-            $this->io->writeError('<info>Async finish.</info>');
-
             //Restore to origin
             $this->composer->getDownloadManager()->setDownloader('git', AsyncGitDownloader::restore($this->composer));
+            $this->io->writeError('<info>Async finish in: '.(microtime(true) - $start).'</info>');
         }
     }
 }
