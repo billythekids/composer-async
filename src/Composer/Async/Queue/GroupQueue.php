@@ -110,27 +110,30 @@ class GroupQueue extends EventEmitter implements IQueue
                     ' . $process->getErrorOutput() . '</error>');
                 }
 
-                if(strpos($command, 'checkout') > 0 && strpos($command, 'reset') >= 0)
+                if(preg_match("/^git checkout ['|\"](.*?)['|\"] --/", $command, $match))
                 {
-                    if(preg_match("/^git checkout '(.*?)' --/", $command, $match))
-                    {
-                        if($branch = $match[1]) {
+                    if($branch = $match[1]) {
 
-                            if (preg_match('{^[a-f0-9]{40}$}', $branch))
-                            {
-                                //TODO implement get hash
-                            }
-                            else
-                            {
-                                $command = str_replace($branch, 'composer/'.$branch, $command);
-                                $process = new Process($command, $cwd, null, null, $timeout);
-                                $process->run($output);
-                            }
-
-                            $this->io->writeError('<info>Running fallback: (' . ($cwd ?: 'CWD') . '): 
-                            ' . $command . '</info>');
+                        if (preg_match('{^[a-f0-9]{40}$}', $branch))
+                        {
+                            //TODO implement get hash
                         }
+                        else
+                        {
+                            $command = "git checkout -B \"branchName\" \"composer/branchName\" --";
+                            $command = str_replace("branchName", $branch, $command);
+
+                            $process = new Process($command, $cwd, null, null, $timeout);
+                            $process->run($output);
+                        }
+
+                        $this->io->writeError('<info>Running fallback: (' . ($cwd ?: 'CWD') . '): 
+                        ' . $command . '</info>');
                     }
+                }
+                else
+                {
+                    throw new \RuntimeException('Failed to execute ' . $command . "\n\n" . $process->getErrorOutput());
                 }
             }
         }
