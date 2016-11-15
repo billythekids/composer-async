@@ -1,7 +1,6 @@
 {
   "name": "contemi/composer-async",
   "description": "Support async git checkout with composer",
-  "minimum-stability": "stable",
   "type": "composer-plugin",
   "license": "MIT",
   "authors": [
@@ -18,7 +17,7 @@
   },
   "require": {
     "composer-plugin-api": "^1.0",
-    "react/child-process": "v0.4.1"
+    "react/child-process": "dev-master"
   },
   "require-dev": {
     "composer/composer": "1.0.*@dev"
