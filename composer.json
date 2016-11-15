@@ -1,0 +1,26 @@
+{
+  "name": "contemi/composer-async",
+  "description": "Support async git checkout with composer",
+  "minimum-stability": "dev",
+  "type": "composer-plugin",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Billy Nguyen",
+      "email": "billythekidsde@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": { "Contemi\\ComposerAsync\\": "src/Composer/Async" }
+  },
+  "extra": {
+    "class": "Contemi\\ComposerAsync\\Plugin"
+  },
+  "require": {
+    "composer-plugin-api": "^1.0",
+    "react/child-process": "dev-master"
+  },
+  "require-dev": {
+    "composer/composer": "1.0.*@dev"
+  }
+}
