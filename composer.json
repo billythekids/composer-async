@@ -1,7 +1,6 @@
 {
   "name": "contemi/composer-async",
   "description": "Support async git checkout with composer",
-  "minimum-stability": "dev",
   "type": "composer-plugin",
   "license": "MIT",
   "authors": [
