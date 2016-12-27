@@ -32,14 +32,17 @@ class Plugin implements PluginInterface, EventSubscriberInterface
 
     private $enable = true;
 
+    private $config;
+
     public function activate(Composer $composer, IOInterface $io)
     {
         if($this->enable)
         {
-            $io->writeError('<info>Async initialize</info>');
+            $io->writeError('<info>Async initializing</info>');
 
             $this->composer = $composer;
             $this->io = $io;
+            $this->config = $composer->getConfig()->get('async');
 
             $composer->getDownloadManager()->setDownloader('git', AsyncGitDownloader::inject($composer, $io));
         }
@@ -88,8 +91,8 @@ class Plugin implements PluginInterface, EventSubscriberInterface
             $start = microtime(true);
 
             $ev->operationsRef = $ops;
-            Factory::getPrimaryQueue()->execute();
-            Factory::getGroupQueue()->execute();
+            Factory::getPrimaryQueue($this->config['max-process'] ?: 4)->execute();
+            Factory::getGroupQueue($this->config['max-process'] ?: 4)->execute();
 
             //Restore to origin
             $this->composer->getDownloadManager()->setDownloader('git', AsyncGitDownloader::restore($this->composer));

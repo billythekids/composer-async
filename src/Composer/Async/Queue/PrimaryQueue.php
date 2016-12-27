@@ -20,7 +20,7 @@ class PrimaryQueue extends EventEmitter implements IQueue
     const JOB_START = "job_start";
     const JOB_FINISH = "job_finish";
 
-    private $maxExecution = 24;
+    private $maxExecution = 4;
     private $executing = 0;
     private $done = 0;
 
@@ -39,13 +39,14 @@ class PrimaryQueue extends EventEmitter implements IQueue
      */
     private $store;
 
-    public function __construct()
+    public function __construct($maxExcute = 4)
     {
         $this->store = new \SplObjectStorage();
 
         $this->on(self::JOB_START, array($this, 'onJobStart'));
         $this->on(self::JOB_FINISH, array($this, 'onJobFinish'));
 
+        $this->maxExecution = $maxExcute;
         $this->loop = Factory::getLoop();
         $this->io = Factory::getIo();
     }
@@ -59,7 +60,7 @@ class PrimaryQueue extends EventEmitter implements IQueue
     {
         if ($this->io && $this->io->isDebug()) {
             $safeCommand = preg_replace('{(://[^:/\s]+:)[^@\s/]+}i', '$1****', $process->getCommand());
-            $this->io->writeError('Executing command ('.($cwd ?: 'CWD').'): '.$safeCommand);
+            $this->io->writeError('<info>PAsync Executing command ('.($cwd ?: 'CWD').'): '.$safeCommand.'</info>');
         }
 
         $this->executing++;
